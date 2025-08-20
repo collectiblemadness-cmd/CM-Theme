@@ -1,0 +1,569 @@
+{% doc %}
+  @prompt
+    Create a vendor logo display element for product pages that automatically shows the appropriate vendor logo based on the product's vendor field. Include options to upload and manage multiple vendor logos, with fallback options and responsive sizing controls.
+
+{% enddoc %}
+{% assign ai_gen_id = block.id | replace: '_', '' | downcase %}
+
+{% style %}
+  .ai-vendor-logo-{{ ai_gen_id }} {
+    display: flex;
+    align-items: center;
+    justify-content: {{ block.settings.alignment }};
+    margin: {{ block.settings.margin_top }}px 0 {{ block.settings.margin_bottom }}px;
+  }
+
+  .ai-vendor-logo-wrapper-{{ ai_gen_id }} {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+  }
+
+  .ai-vendor-logo-image-{{ ai_gen_id }} {
+    max-width: {{ block.settings.max_width_desktop }}px;
+    max-height: {{ block.settings.max_height_desktop }}px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    transition: opacity 0.3s ease;
+  }
+
+  .ai-vendor-logo-image-{{ ai_gen_id }}:hover {
+    opacity: {{ block.settings.hover_opacity | divided_by: 100.0 }};
+  }
+
+  .ai-vendor-logo-fallback-{{ ai_gen_id }} {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: {{ block.settings.fallback_padding }}px;
+    background-color: {{ block.settings.fallback_background_color }};
+    color: {{ block.settings.fallback_text_color }};
+    border: 1px solid {{ block.settings.fallback_border_color }};
+    border-radius: {{ block.settings.fallback_border_radius }}px;
+    font-size: {{ block.settings.fallback_font_size }}px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    min-width: {{ block.settings.fallback_min_width }}px;
+    min-height: {{ block.settings.fallback_min_height }}px;
+  }
+
+  .ai-vendor-logo-link-{{ ai_gen_id }} {
+    display: inline-block;
+    text-decoration: none;
+  }
+
+  @media screen and (max-width: 749px) {
+    .ai-vendor-logo-image-{{ ai_gen_id }} {
+      max-width: {{ block.settings.max_width_mobile }}px;
+      max-height: {{ block.settings.max_height_mobile }}px;
+    }
+
+    .ai-vendor-logo-fallback-{{ ai_gen_id }} {
+      font-size: {{ block.settings.fallback_font_size | times: 0.8 }}px;
+      min-width: {{ block.settings.fallback_min_width | times: 0.8 }}px;
+      min-height: {{ block.settings.fallback_min_height | times: 0.8 }}px;
+      padding: {{ block.settings.fallback_padding | times: 0.8 }}px;
+    }
+  }
+
+  {% if block.settings.show_vendor_name %}
+    .ai-vendor-logo-name-{{ ai_gen_id }} {
+      margin-top: 8px;
+      font-size: {{ block.settings.vendor_name_font_size }}px;
+      color: {{ block.settings.vendor_name_color }};
+      text-align: center;
+    }
+
+    @media screen and (max-width: 749px) {
+      .ai-vendor-logo-name-{{ ai_gen_id }} {
+        font-size: {{ block.settings.vendor_name_font_size | times: 0.9 }}px;
+      }
+    }
+  {% endif %}
+{% endstyle %}
+
+<div class="ai-vendor-logo-{{ ai_gen_id }}" {{ block.shopify_attributes }}>
+  {% if product and product.vendor %}
+    {% liquid
+      assign vendor_handle = product.vendor | handle
+      assign vendor_logo = null
+      assign vendor_url = null
+
+      case vendor_handle
+        when block.settings.vendor_1_handle
+          assign vendor_logo = block.settings.vendor_1_logo
+          assign vendor_url = block.settings.vendor_1_url
+        when block.settings.vendor_2_handle
+          assign vendor_logo = block.settings.vendor_2_logo
+          assign vendor_url = block.settings.vendor_2_url
+        when block.settings.vendor_3_handle
+          assign vendor_logo = block.settings.vendor_3_logo
+          assign vendor_url = block.settings.vendor_3_url
+        when block.settings.vendor_4_handle
+          assign vendor_logo = block.settings.vendor_4_logo
+          assign vendor_url = block.settings.vendor_4_url
+        when block.settings.vendor_5_handle
+          assign vendor_logo = block.settings.vendor_5_logo
+          assign vendor_url = block.settings.vendor_5_url
+        when block.settings.vendor_6_handle
+          assign vendor_logo = block.settings.vendor_6_logo
+          assign vendor_url = block.settings.vendor_6_url
+        when block.settings.vendor_7_handle
+          assign vendor_logo = block.settings.vendor_7_logo
+          assign vendor_url = block.settings.vendor_7_url
+        when block.settings.vendor_8_handle
+          assign vendor_logo = block.settings.vendor_8_logo
+          assign vendor_url = block.settings.vendor_8_url
+      endcase
+    %}
+
+    <div class="ai-vendor-logo-wrapper-{{ ai_gen_id }}">
+      {% if vendor_logo != blank %}
+        {% if vendor_url != blank and block.settings.enable_vendor_links %}
+          <a href="{{ vendor_url }}" class="ai-vendor-logo-link-{{ ai_gen_id }}" target="_blank" rel="noopener">
+        {% endif %}
+        
+        <img
+          src="{{ vendor_logo | image_url: width: 400 }}"
+          alt="{{ product.vendor | escape }} logo"
+          class="ai-vendor-logo-image-{{ ai_gen_id }}"
+          loading="lazy"
+          width="{{ vendor_logo.width }}"
+          height="{{ vendor_logo.height }}"
+        >
+        
+        {% if vendor_url != blank and block.settings.enable_vendor_links %}
+          </a>
+        {% endif %}
+      {% else %}
+        {% if block.settings.show_fallback %}
+          {% if vendor_url != blank and block.settings.enable_vendor_links %}
+            <a href="{{ vendor_url }}" class="ai-vendor-logo-link-{{ ai_gen_id }}" target="_blank" rel="noopener">
+          {% endif %}
+          
+          <div class="ai-vendor-logo-fallback-{{ ai_gen_id }}">
+            {% if block.settings.fallback_type == 'text' %}
+              {{ product.vendor }}
+            {% else %}
+              {{ product.vendor | slice: 0, 3 }}
+            {% endif %}
+          </div>
+          
+          {% if vendor_url != blank and block.settings.enable_vendor_links %}
+            </a>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+      {% if block.settings.show_vendor_name %}
+        <div class="ai-vendor-logo-name-{{ ai_gen_id }}">
+          {{ product.vendor }}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+{% schema %}
+{
+  "name": "Vendor Logo Display",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment",
+      "options": [
+        {
+          "value": "flex-start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        },
+        {
+          "value": "flex-end",
+          "label": "Right"
+        }
+      ],
+      "default": "flex-start"
+    },
+    {
+      "type": "range",
+      "id": "margin_top",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Top margin",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "margin_bottom",
+      "min": 0,
+      "max": 50,
+      "step": 5,
+      "unit": "px",
+      "label": "Bottom margin",
+      "default": 15
+    },
+    {
+      "type": "header",
+      "content": "Logo Size"
+    },
+    {
+      "type": "range",
+      "id": "max_width_desktop",
+      "min": 50,
+      "max": 300,
+      "step": 10,
+      "unit": "px",
+      "label": "Max width (desktop)",
+      "default": 120
+    },
+    {
+      "type": "range",
+      "id": "max_height_desktop",
+      "min": 30,
+      "max": 150,
+      "step": 5,
+      "unit": "px",
+      "label": "Max height (desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "max_width_mobile",
+      "min": 40,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "label": "Max width (mobile)",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "max_height_mobile",
+      "min": 25,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Max height (mobile)",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "hover_opacity",
+      "min": 50,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "label": "Hover opacity",
+      "default": 80
+    },
+    {
+      "type": "header",
+      "content": "Vendor Name"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor_name",
+      "label": "Show vendor name below logo",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "vendor_name_font_size",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "label": "Vendor name font size",
+      "default": 14
+    },
+    {
+      "type": "color",
+      "id": "vendor_name_color",
+      "label": "Vendor name color",
+      "default": "#666666"
+    },
+    {
+      "type": "header",
+      "content": "Links"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_vendor_links",
+      "label": "Enable vendor links",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Fallback Options"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_fallback",
+      "label": "Show fallback when logo not available",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "fallback_type",
+      "label": "Fallback display type",
+      "options": [
+        {
+          "value": "text",
+          "label": "Full vendor name"
+        },
+        {
+          "value": "initials",
+          "label": "First 3 letters"
+        }
+      ],
+      "default": "initials"
+    },
+    {
+      "type": "color",
+      "id": "fallback_background_color",
+      "label": "Fallback background color",
+      "default": "#f5f5f5"
+    },
+    {
+      "type": "color",
+      "id": "fallback_text_color",
+      "label": "Fallback text color",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "fallback_border_color",
+      "label": "Fallback border color",
+      "default": "#dddddd"
+    },
+    {
+      "type": "range",
+      "id": "fallback_border_radius",
+      "min": 0,
+      "max": 20,
+      "step": 2,
+      "unit": "px",
+      "label": "Fallback border radius",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "fallback_font_size",
+      "min": 10,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "label": "Fallback font size",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "fallback_padding",
+      "min": 5,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "label": "Fallback padding",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "fallback_min_width",
+      "min": 40,
+      "max": 120,
+      "step": 5,
+      "unit": "px",
+      "label": "Fallback minimum width",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "fallback_min_height",
+      "min": 25,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "Fallback minimum height",
+      "default": 30
+    },
+    {
+      "type": "header",
+      "content": "Vendor 1"
+    },
+    {
+      "type": "text",
+      "id": "vendor_1_handle",
+      "label": "Vendor name (exact match)",
+      "info": "Enter the exact vendor name as it appears in your products"
+    },
+    {
+      "type": "image_picker",
+      "id": "vendor_1_logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "url",
+      "id": "vendor_1_url",
+      "label": "Vendor website URL"
+    },
+    {
+      "type": "header",
+      "content": "Vendor 2"
+    },
+    {
+      "type": "text",
+      "id": "vendor_2_handle",
+      "label": "Vendor name (exact match)",
+      "info": "Enter the exact vendor name as it appears in your products"
+    },
+    {
+      "type": "image_picker",
+      "id": "vendor_2_logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "url",
+      "id": "vendor_2_url",
+      "label": "Vendor website URL"
+    },
+    {
+      "type": "header",
+      "content": "Vendor 3"
+    },
+    {
+      "type": "text",
+      "id": "vendor_3_handle",
+      "label": "Vendor name (exact match)",
+      "info": "Enter the exact vendor name as it appears in your products"
+    },
+    {
+      "type": "image_picker",
+      "id": "vendor_3_logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "url",
+      "id": "vendor_3_url",
+      "label": "Vendor website URL"
+    },
+    {
+      "type": "header",
+      "content": "Vendor 4"
+    },
+    {
+      "type": "text",
+      "id": "vendor_4_handle",
+      "label": "Vendor name (exact match)",
+      "info": "Enter the exact vendor name as it appears in your products"
+    },
+    {
+      "type": "image_picker",
+      "id": "vendor_4_logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "url",
+      "id": "vendor_4_url",
+      "label": "Vendor website URL"
+    },
+    {
+      "type": "header",
+      "content": "Vendor 5"
+    },
+    {
+      "type": "text",
+      "id": "vendor_5_handle",
+      "label": "Vendor name (exact match)",
+      "info": "Enter the exact vendor name as it appears in your products"
+    },
+    {
+      "type": "image_picker",
+      "id": "vendor_5_logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "url",
+      "id": "vendor_5_url",
+      "label": "Vendor website URL"
+    },
+    {
+      "type": "header",
+      "content": "Vendor 6"
+    },
+    {
+      "type": "text",
+      "id": "vendor_6_handle",
+      "label": "Vendor name (exact match)",
+      "info": "Enter the exact vendor name as it appears in your products"
+    },
+    {
+      "type": "image_picker",
+      "id": "vendor_6_logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "url",
+      "id": "vendor_6_url",
+      "label": "Vendor website URL"
+    },
+    {
+      "type": "header",
+      "content": "Vendor 7"
+    },
+    {
+      "type": "text",
+      "id": "vendor_7_handle",
+      "label": "Vendor name (exact match)",
+      "info": "Enter the exact vendor name as it appears in your products"
+    },
+    {
+      "type": "image_picker",
+      "id": "vendor_7_logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "url",
+      "id": "vendor_7_url",
+      "label": "Vendor website URL"
+    },
+    {
+      "type": "header",
+      "content": "Vendor 8"
+    },
+    {
+      "type": "text",
+      "id": "vendor_8_handle",
+      "label": "Vendor name (exact match)",
+      "info": "Enter the exact vendor name as it appears in your products"
+    },
+    {
+      "type": "image_picker",
+      "id": "vendor_8_logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "url",
+      "id": "vendor_8_url",
+      "label": "Vendor website URL"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Vendor Logo Display"
+    }
+  ]
+}
+{% endschema %}
