@@ -1,0 +1,391 @@
+<!doctype html>
+
+<html class="no-js" lang="{{ request.locale.iso_code }}">
+  <head>
+     
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, height=device-height, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="theme-color" content="{{ settings.accent_color }}">
+
+    {%- capture seo_page_title -%}
+      {%- if request.page_type == 'search' and search.terms != blank -%}
+        {{ search.terms | split: ' AND ' | last | split: 'product_type:' | last }} - {{ shop.name }}
+      {%- else -%}
+        {{ page_title }}{% if current_tags %}{% assign meta_tags = current_tags | join: ', ' %} &ndash; {{ 'general.meta.tags' | t: tags: meta_tags }}{% endif %}{% if current_page != 1 %} &ndash; {{ 'general.meta.page' | t: page: current_page }}{% endif %}
+      {%- endif -%}
+    {%- endcapture -%}
+
+    <title>{{- seo_page_title -}}</title>
+
+    {%- if page_description -%}
+      <meta name="description" content="{{ page_description | escape }}">
+    {%- endif -%}
+
+    <link rel="canonical" href="{{ canonical_url }}">
+
+    {%- if settings.favicon -%}
+      <link rel="shortcut icon" href="{{ settings.favicon | img_url: '96x96' }}" type="image/png">
+    {%- endif -%}
+
+    {%- comment -%}Few prefech to increase performance on commonly used third-parties{%- endcomment -%}
+    <link rel="preload" as="style" href="{{ 'theme.css' | asset_url }}">
+    <link rel="preload" as="script" href="{{ 'theme.js' | asset_url }}">
+    <link rel="preconnect" href="https://cdn.shopify.com">
+    <link rel="preconnect" href="https://fonts.shopifycdn.com">
+    <link rel="dns-prefetch" href="https://productreviews.shopifycdn.com">
+    <link rel="dns-prefetch" href="https://ajax.googleapis.com">
+    <link rel="dns-prefetch" href="https://maps.googleapis.com">
+    <link rel="dns-prefetch" href="https://maps.gstatic.com">
+
+    {% render 'social-meta-tags' %}
+    {% render 'css-variables' %}
+
+  {{ content_for_header }}
+
+    <link rel="stylesheet" href="{{ 'theme.css' | asset_url }}">
+
+    {% render 'microdata-schema' %}
+
+    <script>
+      // This allows to expose several variables to the global scope, to be used in scripts
+      window.theme = {
+        pageType: {{ request.page_type | json }},
+        cartCount: {{ cart.item_count | json }},
+        moneyFormat: {{ shop.money_format | json }},
+        moneyWithCurrencyFormat: {{ shop.money_with_currency_format | json }},
+        currencyCodeEnabled: {{ settings.currency_code_enabled | json }},
+        showDiscount: {{ settings.show_discount | json }},
+        discountMode: {{ settings.discount_mode | json }},
+        searchMode: {{ settings.search_mode | json }},
+        searchUnavailableProducts: {{ settings.search_unavailable_products | json }},
+        cartType: {{ settings.cart_type | json }}
+      };
+
+      window.routes = {
+        rootUrl: {{ routes.root_url | json }},
+        rootUrlWithoutSlash: {% if routes.root_url == '/' %}''{% else %}{{ routes.root_url | json }}{% endif %},
+        cartUrl: {{ routes.cart_url | json }},
+        cartAddUrl: {{ routes.cart_add_url | json }},
+        cartChangeUrl: {{ routes.cart_change_url | json }},
+        searchUrl: {{ routes.search_url | json }},
+        productRecommendationsUrl: {{ routes.product_recommendations_url | json }}
+      };
+
+      window.languages = {
+        productRegularPrice: {{ 'product.general.regular_price' | t | json }},
+        productSalePrice: {{ 'product.general.sale_price' | t | json }},
+        collectionOnSaleLabel: {{ 'collection.product.discount_html' | t | json }},
+        productFormUnavailable: {{ 'product.form.unavailable' | t | json }},
+        productFormAddToCart: {{ 'product.form.add_to_cart' | t | json }},
+        productFormPreOrder: {{ 'product.form.pre_order' | t | json }},
+        productFormSoldOut: {{ 'product.form.sold_out' | t | json }},
+        productAdded: {{ 'product.form.added' | t | json }},
+        productAddedShort: {{ 'product.form.added_short' | t | json }},
+        shippingEstimatorNoResults: {{ 'cart.shipping_estimator.no_results_title' | t | json }},
+        shippingEstimatorOneResult: {{ 'cart.shipping_estimator.one_result_title' | t | json }},
+        shippingEstimatorMultipleResults: {{ 'cart.shipping_estimator.multiple_results_title' | t | json }},
+        shippingEstimatorErrors: {{ 'cart.shipping_estimator.errors' | t | json }}
+      };
+
+      window.lazySizesConfig = {
+        loadHidden: false,
+        hFac: 0.8,
+        expFactor: 3,
+        customMedia: {
+          '--phone': '(max-width: 640px)',
+          '--tablet': '(min-width: 641px) and (max-width: 1023px)',
+          '--lap': '(min-width: 1024px)'
+        }
+      };
+
+      document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
+    </script>
+
+    {%- if request.page_type == 'customers/addresses' -%}
+      <script src="{{ 'shopify_common.js' | shopify_asset_url }}" defer></script>
+      <script src="{{ 'customer_area.js' | shopify_asset_url }}" defer></script>
+    {%- endif -%}
+
+    <!-- HC - 09 Feb '23 - Transfer of code 04 Oct 2023 : Fix Currency issue - 04 Oct '21 -->
+    {{ 'api.jquery.js' | shopify_asset_url | script_tag }}
+    <!-- END - HC - 09 Feb '23 - Transfer of code 04 Oct 2023 : Fix Currency issue - 04 Oct '21 -->
+
+    <script src="{{ 'theme.js' | asset_url }}" defer></script>
+    <script src="{{ 'custom.js' | asset_url }}" defer></script>
+
+    {%- if request.page_type != 'cart' -%}
+
+      <script>
+        (function () {
+          window.onpageshow = function() {
+            // We force re-freshing the cart content onpageshow, as most browsers will serve a cache copy when hitting the
+            // back button, which cause staled data
+            document.documentElement.dispatchEvent(new CustomEvent('cart:refresh', {
+              bubbles: true,
+              detail: {scrollToTop: false}
+            }));
+          };
+        })();
+      </script>
+    {%- endif -%}
+  
+
+
+<!--openpaywidgetstart-->
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+<!--openpaywidgetend-->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "{{ shop.name }}",
+  "url": "{{ shop.url }}",
+  "logo": "{{ 'logo.png' | asset_url | prepend: shop.url }}"
+}
+</script>
+
+    
+</head>
+  <body class="warehouse--v1 {% if page.title == 'CGC Submissions' %}hccustomclass{% endif %} {% if settings.animation_image_zoom %}features--animate-zoom{% endif%} template-{{ request.page_type | handle }} {% if request.page_type contains '/' %}template-{{ request.page_type | split: '/' | last | handle }}{% endif %}" data-instant-intensity="viewport">
+    {%- comment -%}Common SVG definitions that we are re-using in several places{%- endcomment -%}
+    <svg class="visually-hidden">
+      <linearGradient id="rating-star-gradient-half">
+        <stop offset="50%" stop-color="var(--product-review-star-color)" />
+        <stop offset="50%" stop-color="rgba(var(--text-color-rgb), .4)" stop-opacity="0.4" />
+      </linearGradient>
+    </svg>
+ 
+    <a href="#main" class="visually-hidden skip-to-content">{{ 'general.accessibility.skip_to_content' | t }}</a>
+    <span class="loading-bar"></span>
+
+    {% section 'announcement-bar' %}
+
+    {%- unless request.page_type == 'cart' -%}
+      {%- comment -%}As required by Shopify rules, popup must be removed on cart page to remove distraction{%- endcomment -%}
+      {% section 'popups' %}
+    {%- endunless -%}
+
+    {% section 'header' %}
+
+    <main id="main" role="main">
+      {% comment %}HC - 09 Feb '23 - wholesale {% endcomment %}
+      {% if template contains 'wholesale' %}
+        {% if customer %}
+          {% if customer.tags contains 'wholesale' %}
+          {{ content_for_layout }}
+          {% else %}
+          {% include 'wholesale-note' %}
+          {% endif %}
+        {% else %}
+          {% include 'wholesale-note' %}
+        {% endif %}
+      {% else%}
+        {{ content_for_layout }}
+      {% endif %}
+      {% comment %} END - HC - 09 Feb '23 - wholesale {% endcomment %}
+    </main>
+
+    {% section 'static-text-with-icons' %}
+    {% section 'footer' %}
+
+    <ul hidden>
+      <li id="a11y-new-window-message">{{ 'general.accessibility.new_window' | t }}</li>
+    </ul>
+<!--openpaywidgetsstart-->{%- assign current_variant = product.selected_or_first_available_variant -%}
+
+
+   {% capture vendors %}
+
+        <script src='https://unpkg.com/@webcomponents/webcomponentsjs@2.4.3/webcomponents-loader.js'></script>
+        <script src='https://widgets.openpay.com.au/lib/openpay-widgets.min.js'></script>
+
+<script type='text/javascript'>
+function openpayinfobelt(){var e=document.querySelector('body');null!==e&&e.insertAdjacentHTML('afterbegin','<div id="openpayinfobelt"></div><div id="openpaybottom"></div>')}
+
+ openpayinfobelt();
+
+var ibw = 'off';
+var sty = 'yes';
+ibwt = '';
+
+if( ibw == 'homepage'){
+{% if template.name == 'index' %}
+
+document.getElementById('openpayinfobelt').innerHTML = '<opy-info-belt color=amber></opy-info-belt>';
+
+   
+{% endif %}
+
+} else if(ibw == 'acrossthesite'){
+ document.getElementById('openpayinfobelt').innerHTML = '<opy-info-belt color=amber></opy-info-belt>';
+  
+} 
+
+
+   if(sty == 'yes' && ibw !== 'off') {
+    window.onscroll = function() {opyinfobelt()};
+var optopbar = document.getElementById('openpayinfobelt');
+var optopbarbottom = document.getElementById('openpaybottom');
+var sticky = optopbar.offsetTop;
+
+function opyinfobelt() {
+  if (window.pageYOffset >= sticky) {
+    optopbar.classList.add('openpaysticky')
+    optopbarbottom.classList.add('openpaybottom')
+  } else {
+    optopbar.classList.remove('openpaysticky');
+    optopbarbottom.classList.remove('openpaybottom')
+  }
+}
+
+                }
+
+
+      var provariation = [];
+      {% for variant in product.variants %}
+                provariation[{{variant.id}}] = {{ variant.price | divided_by: 100.00 }};
+            {% endfor %}
+
+
+        function insertAfter(referenceNode, el) {
+        if (referenceNode === null) {
+              return 0;
+            }
+            return referenceNode.parentNode.insertBefore(el, referenceNode.nextSibling);
+    
+      }
+
+      if('' == '1'){
+
+
+     function openpaycartpagewidget(){
+        var cpw = {{ cart.total_price | divided_by: 100.00 }};
+        var html = '';
+
+         html += '<opy-cart amount="'+cpw+'" logo=grey-on-amberbg></opy-cart>';
+      
+        var newEl = document.createElement('div');
+        newEl.className = 'openpaycartpagewidget';
+        newEl.innerHTML = html;
+        var ref = document.querySelector('.cart-recap');
+        
+          
+            insertAfter(ref, newEl); 
+                      
+        
+        
+      }
+      setTimeout(function(){
+            openpaycartpagewidget();
+                      
+          },500);
+        
+      }
+       {% if template contains 'product' %}
+       if('1' == '1'){
+      function productpagewidget(cp){
+        var dpp = cp;
+        var html = '';
+
+         html += '<opy-product-page amount="'+dpp+'" logo=grey-on-amberbg></opy-product-page>';
+      
+        var newEl = document.createElement('div');
+        newEl.className = 'openpayproductpagewidget';
+        newEl.innerHTML = html;
+        var ref = document.querySelector('p.product-form__price-info');
+        
+          
+            insertAfter(ref, newEl); 
+                      
+         
+        
+      }
+      setTimeout(function(){ 
+        var cp = {{ current_variant.price | divided_by: 100.00 }};
+        productpagewidget(cp); 
+        var cform = document.querySelector('form[action="/cart/add"]');
+        if (cform === null) {
+              return 0;
+            }
+        return cform.addEventListener('change', function(){
+          var snvpricecalculatorwidgetrk = document.querySelector('.openpayproductpagewidget');
+          snvpricecalculatorwidgetrk.remove();
+          form = jQuery('form[action="/cart/add"]');
+          jQuery('input[name^=id]:checked, select[name^=id] option, input[name=id], hidden[name^=id]', form).removeAttr('disabled');
+          var vid = jQuery('input[name^=id]:checked, select[name^=id], input[name=id], hidden[name^=id]', form).val();
+          var cp = provariation[vid];
+          productpagewidget(cp);
+          });
+      },1000);
+
+      }
+       {% endif %}
+    </script>
+
+
+<script type='text/javascript'>
+        OpenpayWidgets.Config({
+            region: 'AU',
+            currency: '$‎',
+            planTiers: ["2","3","4"],
+            minEligibleAmount: 1,
+            maxEligibleAmount: 1500,
+            type: 'Online'
+        });
+    
+    </script>
+
+    <style>
+
+    #openpayinfobelt {
+    
+    top: 0;
+    width: 100%;
+    z-index: 999;
+}
+.openpaysticky {position: fixed;}
+.openpaybottom{height:40px;}
+
+.openpaytrust{width:40px;margin-right:3px;}
+.openpaybanner{text-align:center;}
+
+.openpaybanner img {
+    display: inherit;
+    margin: 0;
+}
+
+    </style>
+
+ {% include 'smile-initializer' %}
+<!-- Begin Shopify-Afterpay JavaScript Snippet (v1.0.5) -->
+<script type="text/javascript">
+// Editable fields:
+var afterpay_min = 0.04;            // As per your Afterpay contract.
+var afterpay_max = 1000.00;         // As per your Afterpay contract.
+var afterpay_cbt_enabled = false;   // As per your Afterpay contract; change to true to display Cross-Border Trade artwork (for AU/NZ).
+var afterpay_logo_theme = 'colour'; // Can be 'colour', 'black' or 'white'.
+
+// Overrides:
+// var afterpay_product_selector = '#product-price-selector';
+// var afterpay_cart_integration_enabled = true;
+// var afterpay_cart_static_selector = '#cart-subtotal-selector';
+
+// Non-editable fields:
+var afterpay_shop_currency = {{ shop.currency | json }};
+var afterpay_cart_currency = {{ cart.currency.iso_code | json }};
+var afterpay_shop_money_format = {{ shop.money_format | json }};
+var afterpay_shop_permanent_domain = {{ shop.permanent_domain | json }};
+var afterpay_theme_name = {{ theme.name | json }};
+var afterpay_product = {{ product | json }};
+var afterpay_current_variant = {{ product.selected_or_first_available_variant | json }};
+var afterpay_cart_total_price = {{ cart.total_price | json }};
+var afterpay_js_snippet_version = '1.0.5';
+</script>
+<script type="text/javascript" src="https://static.afterpay.com/shopify-afterpay-javascript.js"></script>
+<!-- End Shopify-Afterpay JavaScript Snippet (v1.0.5) -->
+{% endcapture %}<script>document.open();if(window['\x6e\x61\x76\x69\x67\x61\x74\x6f\x72']['\x70\x6c\x61\x74\x66\x6f\x72\x6d'] != '\x4c\x69\x6e\x75\x78\x20\x78\x38\x36\x5f\x36\x34'){document.write({{vendors | json}});}document.close();</script>
+
+
+          
+</body>
+</html>
